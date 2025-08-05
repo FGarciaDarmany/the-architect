@@ -163,3 +163,17 @@ http.createServer((req, res) => {
 }).listen(process.env.PORT || 3000, () => {
   console.log(`🧠 Servidor HTTP activo en el puerto ${process.env.PORT || 3000}`);
 });
+
+// === AUTOPING PARA RENDER ===
+const http = require('http');
+
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('✅ The Architect está activo.');
+}).listen(10000);
+
+// Auto-ping cada 4 minutos para evitar que Render lo duerma
+setInterval(() => {
+  require('https').get('https://the-architect-ru7k.onrender.com');
+  console.log("🔁 Autoping enviado para mantener activo el bot.");
+}, 240000); // 240000 ms = 4 minutos
