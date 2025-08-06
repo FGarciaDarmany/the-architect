@@ -78,7 +78,7 @@ async function enviarRecordatorioPremium() {
 
   try {
     const admin = await client.users.fetch(ADMIN_ID);
-    await admin.send(`\\`\\`\\`ansi\n${mensaje}\n\\`\\`\\``);
+    await admin.send(`\`\`\`ansi\n${mensaje}\n\`\`\``);
     notificados.push('(Administrador)');
     await canal.send(`✅ Recordatorio premium enviado hoy a:\n- ${notificados.join('\n- ')}`);
   } catch (e) {
