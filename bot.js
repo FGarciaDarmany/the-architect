@@ -64,6 +64,10 @@ async function enviarRecordatorioPremium() {
     const match = linea.match(/ID: (\d+)/);
     if (!match) continue;
     const id = match[1];
+
+    // ⛔ Evita duplicado: si el admin está en la lista de premium, no le mandamos dos veces
+    if (id === ADMIN_ID) continue;
+
     try {
       const user = await client.users.fetch(id);
       await user.send(mensaje);
