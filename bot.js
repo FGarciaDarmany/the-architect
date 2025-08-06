@@ -61,7 +61,7 @@ async function enviarRecordatorioPremium() {
   const canal = await client.channels.fetch(CANAL_REPORTE_ID);
   const notificados = [];
 
-  const mensaje = `\u001b[0;35m📢 RECORDATORIO PREMIUM\u001b[0m\n\u001b[0;32mTu acceso premium vence el día 10.\u001b[0m\n\u001b[0;36mRenová antes del 11 para mantener tus beneficios.\u001b[0m\n\u001b[0;33mGracias por seguir explorando la Matrix.\u001b[0m`;
+  const mensaje = "```ansi\n\u001b[0;35m📢 RECORDATORIO PREMIUM\u001b[0m\n\u001b[0;32mTu acceso premium vence el día 10.\u001b[0m\n\u001b[0;36mRenová antes del 11 para mantener tus beneficios.\u001b[0m\n\u001b[0;33mGracias por seguir explorando la Matrix.\u001b[0m\n```";
 
   for (const linea of usuarios) {
     const match = linea.match(/ID: (\d+)/);
@@ -69,7 +69,7 @@ async function enviarRecordatorioPremium() {
     const id = match[1];
     try {
       const user = await client.users.fetch(id);
-      await user.send(````ansi\n${mensaje}\n```);
+      await user.send(mensaje);
       notificados.push(user.tag);
     } catch (e) {
       console.error(`❌ No se pudo enviar recordatorio a ${id}:`, e.message);
@@ -78,7 +78,7 @@ async function enviarRecordatorioPremium() {
 
   try {
     const admin = await client.users.fetch(ADMIN_ID);
-    await admin.send(````ansi\n${mensaje}\n```);
+    await admin.send(mensaje);
     notificados.push('(Administrador)');
     await canal.send(`✅ Recordatorio premium enviado hoy a:\n- ${notificados.join('\n- ')}`);
   } catch (e) {
@@ -96,7 +96,7 @@ client.on('messageCreate', async (message) => {
   }
 
   if (message.content === '!estado') {
-    return message.reply(````ansi\n\u001b[0;32m✅ THE ARCHITECT FUNCIONANDO\u001b[0m\n\u001b[0;36mOnline y operativo dentro del horario permitido.\u001b[0m\n```);
+    return message.reply("```ansi\n\u001b[0;32m✅ THE ARCHITECT FUNCIONANDO\u001b[0m\n\u001b[0;36mOnline y operativo dentro del horario permitido.\u001b[0m\n```");
   }
 
   if (message.content === '!testrecordatorio' && message.author.id === ADMIN_ID) {
@@ -119,7 +119,7 @@ client.on('messageCreate', async (message) => {
     const userMention = message.mentions.members.first();
     if (!userMention) return message.reply('❌ Debes mencionar a un usuario. Ej: !premium @usuario');
 
-    const mensajeUsuario = ````ansi\n${MORPHEUS_EMOJI} \u001b[1;32mBIENVENIDO AL MODO PREMIUM\u001b[0m\n\n\u001b[1;34mTu conexión ha sido establecida.\u001b[0m\nAcceso garantizado a los servicios de The Architect.\n\n\u001b[1;37mTu condición premium estará activa hasta el día\u001b[0m \u001b[1;33m10 del próximo mes\u001b[0m.  \n\u001b[1;37mRenová tu acceso el día\u001b[0m \u001b[1;31m11\u001b[0m \u001b[1;37mpara no perder tu estatus.\u001b[0m\n\n\u001b[1;32mDisfrutá de los beneficios y que la Matrix te acompañe.\u001b[0m\n```;
+    const mensajeUsuario = "```ansi\n" + MORPHEUS_EMOJI + " \u001b[1;32mBIENVENIDO AL MODO PREMIUM\u001b[0m\n\n\u001b[1;34mTu conexión ha sido establecida.\u001b[0m\nAcceso garantizado a los servicios de The Architect.\n\n\u001b[1;37mTu condición premium estará activa hasta el día\u001b[0m \u001b[1;33m10 del próximo mes\u001b[0m.  \n\u001b[1;37mRenová tu acceso el día\u001b[0m \u001b[1;31m11\u001b[0m \u001b[1;37mpara no perder tu estatus.\u001b[0m\n\n\u001b[1;32mDisfrutá de los beneficios y que la Matrix te acompañe.\u001b[0m\n```";
 
     try {
       await userMention.send(mensajeUsuario);
@@ -138,7 +138,7 @@ client.on('messageCreate', async (message) => {
     const userMention = message.mentions.members.first();
     if (!userMention) return message.reply('❌ Debes mencionar a un usuario. Ej: !finpremium @usuario');
 
-    const mensajeUsuario = `${MORPHEUS_EMOJI}\n🟡 **Tu periodo premium ha finalizado, ${userMention.user.username}.**\n\n🔒 A partir de ahora tu acceso será limitado.\n📉 Has sido degradado al rol \"Free\".\n\nGracias por explorar la Matrix.`;
+    const mensajeUsuario = `${MORPHEUS_EMOJI}\n🟡 **Tu periodo premium ha finalizado, ${userMention.user.username}.**\n\n🔒 A partir de ahora tu acceso será limitado.\n📉 Has sido degradado al rol "Free".\n\nGracias por explorar la Matrix.`;
 
     try {
       await userMention.send(mensajeUsuario);
