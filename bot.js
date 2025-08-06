@@ -6,7 +6,7 @@ const http = require('http');
 
 // === CONTROL HORARIO RENDER ===
 const ahora = new Date();
-const offsetParaguay = -3 * 60;  // ← CORREGIDO AQUÍ
+const offsetParaguay = -3 * 60;
 const utcOffset = ahora.getTimezoneOffset();
 const ahoraParaguay = new Date(ahora.getTime() + (offsetParaguay - utcOffset) * 60000);
 const dia = ahoraParaguay.getDate();
@@ -61,13 +61,7 @@ async function enviarRecordatorioPremium() {
   const canal = await client.channels.fetch(CANAL_REPORTE_ID);
   const notificados = [];
 
-  const mensaje = `\`\`\`ansi
-[0;35m📢 RECORDATORIO PREMIUM[0m
-
-[0;32mTu acceso premium vence el día 10.[0m
-[0;36mRenová antes del 11 para mantener tus beneficios.[0m
-[0;33mGracias por seguir explorando la Matrix.[0m
-\`\`\``;
+  const mensaje = `\u001b[0;35m📢 RECORDATORIO PREMIUM\u001b[0m\n\u001b[0;32mTu acceso premium vence el día 10.\u001b[0m\n\u001b[0;36mRenová antes del 11 para mantener tus beneficios.\u001b[0m\n\u001b[0;33mGracias por seguir explorando la Matrix.\u001b[0m`;
 
   for (const linea of usuarios) {
     const match = linea.match(/ID: (\d+)/);
@@ -75,7 +69,7 @@ async function enviarRecordatorioPremium() {
     const id = match[1];
     try {
       const user = await client.users.fetch(id);
-      await user.send(mensaje);
+      await user.send(`\\`\\`\\`ansi\n${mensaje}\n\\`\\`\\``);
       notificados.push(user.tag);
     } catch (e) {
       console.error(`❌ No se pudo enviar recordatorio a ${id}:`, e.message);
@@ -84,7 +78,7 @@ async function enviarRecordatorioPremium() {
 
   try {
     const admin = await client.users.fetch(ADMIN_ID);
-    await admin.send(mensaje);
+    await admin.send(`\\`\\`\\`ansi\n${mensaje}\n\\`\\`\\``);
     notificados.push('(Administrador)');
     await canal.send(`✅ Recordatorio premium enviado hoy a:\n- ${notificados.join('\n- ')}`);
   } catch (e) {
@@ -95,19 +89,17 @@ async function enviarRecordatorioPremium() {
 client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild || message.system) return;
 
+  const MORPHEUS_EMOJI = '<:Morpheus:1396149050063196311>';
+
   if (message.content === '!ping') {
     return message.reply('🏓 Pong!');
   }
 
   if (message.content === '!estado') {
-    return message.reply(`\`\`\`ansi
-[0;32m✅ THE ARCHITECT FUNCIONANDO[0m
-[0;36mOnline y operativo dentro del horario permitido.[0m
-\`\`\``);
+    return message.reply(`\\`\\`\\`ansi\n\u001b[0;32m✅ THE ARCHITECT FUNCIONANDO\u001b[0m\n\u001b[0;36mOnline y operativo dentro del horario permitido.\u001b[0m\n\\`\\`\\``);
   }
 
-  if (message.content === '!testrecordatorio') {
-    if (message.author.id !== ADMIN_ID) return;
+  if (message.content === '!testrecordatorio' && message.author.id === ADMIN_ID) {
     await enviarRecordatorioPremium();
     return message.reply('✅ Recordatorio enviado manualmente.');
   }
@@ -122,18 +114,12 @@ client.on('messageCreate', async (message) => {
     return message.reply(`📋 Lista de usuarios free:\n\n${lista.join('\n') || 'Vacía'}`);
   }
 
-  if (message.content.startsWith('!renovar')) {
+  if (message.content.startsWith('!premium')) {
+    if (message.channel.id !== CANAL_REPORTE_ID) return;
     const userMention = message.mentions.members.first();
-    if (!userMention) return message.reply('❌ Debes mencionar a un usuario. Ej: !renovar @usuario');
+    if (!userMention) return message.reply('❌ Debes mencionar a un usuario. Ej: !premium @usuario');
 
-    const mensajeUsuario = `<:Morpheus:1396149050063196311>
-🔴 **Bienvenido nuevamente, ${userMention.user.username}!**
-
-Tu acceso Premium ha sido renovado.
-📅 Estará activo hasta el día **10 del próximo mes**.
-🔁 Recuerda renovarlo el día **11** para no perder el acceso.
-
-Gracias por seguir explorando la Matrix.`;
+    const mensajeUsuario = `\\`\\`\\`ansi\n${MORPHEUS_EMOJI} \u001b[1;32mBIENVENIDO AL MODO PREMIUM\u001b[0m\n\n\u001b[1;34mTu conexión ha sido establecida.\u001b[0m\nAcceso garantizado a los servicios de The Architect.\n\n\u001b[1;37mTu condición premium estará activa hasta el día\u001b[0m \u001b[1;33m10 del próximo mes\u001b[0m.  \n\u001b[1;37mRenová tu acceso el día\u001b[0m \u001b[1;31m11\u001b[0m \u001b[1;37mpara no perder tu estatus.\u001b[0m\n\n\u001b[1;32mDisfrutá de los beneficios y que la Matrix te acompañe.\u001b[0m\n\\`\\`\\``;
 
     try {
       await userMention.send(mensajeUsuario);
@@ -145,20 +131,14 @@ Gracias por seguir explorando la Matrix.`;
     await userMention.roles.add(PREMIUM_ROLE_ID);
     await userMention.roles.remove(FREE_ROLE_ID);
 
-    return message.reply(`🔄 Acceso Premium renovado y notificado a ${userMention.user.tag}`);
+    return message.reply(`✅ ${userMention.user.tag} ahora es usuario PREMIUM y fue notificado por DM.`);
   }
 
   if (message.content.startsWith('!finpremium')) {
     const userMention = message.mentions.members.first();
     if (!userMention) return message.reply('❌ Debes mencionar a un usuario. Ej: !finpremium @usuario');
 
-    const mensajeUsuario = `<:Morpheus:1396149050063196311>
-🟡 **Tu periodo premium ha finalizado, ${userMention.user.username}.**
-
-🔒 A partir de ahora tu acceso será limitado.
-📉 Has sido degradado al rol "Free".
-
-Gracias por explorar la Matrix. Si deseas seguir con acceso completo, contacta a un administrador.`;
+    const mensajeUsuario = `${MORPHEUS_EMOJI}\n🟡 **Tu periodo premium ha finalizado, ${userMention.user.username}.**\n\n🔒 A partir de ahora tu acceso será limitado.\n📉 Has sido degradado al rol \"Free\".\n\nGracias por explorar la Matrix.`;
 
     try {
       await userMention.send(mensajeUsuario);
@@ -185,11 +165,7 @@ Gracias por explorar la Matrix. Si deseas seguir con acceso completo, contacta a
   }
 
   if (message.content === '!soporte') {
-    const mensaje = `🧠 **Soporte y ayuda**
-
-📘 Guía del servidor: https://discord.com/channels/1365307119058026497/1387443133641658378
-🧾 Contacto administrador: <@1247253422961594409>
-🕳️ Bienvenido a la Matrix.`;
+    const mensaje = `🧠 **Soporte y ayuda**\n\n📘 Guía del servidor: https://discord.com/channels/1365307119058026497/1387443133641658378\n🧾 Contacto administrador: <@${ADMIN_ID}>\n🕳️ Bienvenido a la Matrix.`;
     return message.author.send(mensaje);
   }
 });
