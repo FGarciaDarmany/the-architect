@@ -51,9 +51,6 @@ function moverUsuarioArchivo(usuarioTag, id, desde, hacia) {
 
 client.once('ready', async () => {
   console.log(`✅ Bot conectado como ${client.user.tag}`);
-  if (dia === 6 && hora === 12 && minuto >= 30 && minuto < 35) {
-    await enviarRecordatorioPremium();
-  }
 });
 
 async function enviarRecordatorioPremium() {
@@ -171,6 +168,33 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+// === RECORDATORIO PREMIUM AUTOMÁTICO CADA MES ===
+let recordatorioEnviado = false;
+
+setInterval(async () => {
+  const ahora = new Date();
+  const offsetParaguay = -3 * 60;
+  const utcOffset = ahora.getTimezoneOffset();
+  const ahoraParaguay = new Date(ahora.getTime() + (offsetParaguay - utcOffset) * 60000);
+  const dia = ahoraParaguay.getDate();
+  const hora = ahoraParaguay.getHours();
+  const minuto = ahoraParaguay.getMinutes();
+
+  if (dia === 6 && hora === 17 && minuto === 0 && !recordatorioEnviado) {
+    console.log("📣 Ejecutando envío automático de recordatorio premium...");
+    try {
+      await enviarRecordatorioPremium();
+      recordatorioEnviado = true;
+    } catch (e) {
+      console.error("❌ Error al ejecutar el recordatorio automático:", e.message);
+    }
+  }
+
+  if (dia !== 6) {
+    recordatorioEnviado = false;
+  }
+}, 60 * 1000);
 
 // === MANTENER VIVO EN RENDER FREE ===
 http.createServer((req, res) => {
