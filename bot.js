@@ -69,7 +69,7 @@ async function enviarRecordatorioPremium() {
     const id = match[1];
     try {
       const user = await client.users.fetch(id);
-      await user.send(`\\`\\`\\`ansi\n${mensaje}\n\\`\\`\\``);
+      await user.send(`\`\`\`ansi\n${mensaje}\n\`\`\``);
       notificados.push(user.tag);
     } catch (e) {
       console.error(`❌ No se pudo enviar recordatorio a ${id}:`, e.message);
