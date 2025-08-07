@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
@@ -6,60 +5,81 @@ const path = require('path');
 const http = require('http');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent
-  ]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.DirectMessages
+    ],
 });
 
-const FREE_ROLE_ID = process.env.FREE_ROLE_ID;
-const PREMIUM_ROLE_ID = process.env.PREMIUM_ROLE_ID;
-const CANAL_GESTION_ID = process.env.CANAL_GESTION_ID;
-const PREMIUM_FILE = path.join(__dirname, 'PREMIUM.txt');
-const FREE_FILE = path.join(__dirname, 'FREE.txt');
-const ADMIN_ID = '1247253422961594409';
-const CANAL_REPORTE_ID = '1390767700707643493';
+const TOKEN = process.env.DISCORD_TOKEN;
 
-client.once('ready', async () => {
-  console.log(`✅ Bot conectado como ${client.user.tag}`);
+// === CONTROL HORARIO RENDER ===
+const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Bot activo');
+});
+server.listen(process.env.PORT || 3000);
+
+// === BOT LISTO ===
+client.once('ready', () => {
+    console.log(`✅ Bot iniciado como ${client.user.tag}`);
 });
 
-client.on('messageCreate', async (message) => {
-  if (message.author.bot || !message.guild || message.system) return;
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
 
-  const MORPHEUS_EMOJI = '<:Morpheus:1396149050063196311>';
+    // === COMANDO !listapremium ===
+    if (message.content === '!listapremium') {
+        try {
+            const data = fs.readFileSync('PREMIUM.txt', 'utf8');
+            const ids = data.split('\n').filter(Boolean);
+            let lista = '👑 **Lista de usuarios premium:**\n\n';
 
-  if (message.content === '!listapremium') {
-    const ids = fs.readFileSync(PREMIUM_FILE, 'utf8').split('\n').filter(Boolean);
-    let respuesta = "👑 Lista de usuarios premium:\n\n";
-    for (const id of ids) {
-      try {
-        const user = await client.users.fetch(id);
-        const member = await message.guild.members.fetch(id);
-        respuesta += `- @${user.username} | ID: ${id} | Nombre: ${member.displayName}\n`;
-      } catch {
-        respuesta += `- ID: ${id} (no encontrado)\n`;
-      }
+            for (const id of ids) {
+                try {
+                    const member = await message.guild.members.fetch(id.trim());
+                    const tag = `<@${id.trim()}>`;
+                    const name = member.displayName;
+                    lista += `• ${tag} — ID: ${id.trim()} — Nombre: ${name}\n`;
+                } catch {
+                    lista += `• ID: ${id.trim()} — ⚠️ No encontrado en el servidor\n`;
+                }
+            }
+
+            message.channel.send(lista);
+        } catch (err) {
+            console.error(err);
+            message.channel.send('❌ Error al leer la lista de usuarios premium.');
+        }
     }
-    return message.reply(respuesta || "⚠️ Lista vacía.");
-  }
 
-  if (message.content === '!listafree') {
-    const ids = fs.readFileSync(FREE_FILE, 'utf8').split('\n').filter(Boolean);
-    let respuesta = "📋 Lista de usuarios free:\n\n";
-    for (const id of ids) {
-      try {
-        const user = await client.users.fetch(id);
-        const member = await message.guild.members.fetch(id);
-        respuesta += `- @${user.username} | ID: ${id} | Nombre: ${member.displayName}\n`;
-      } catch {
-        respuesta += `- ID: ${id} (no encontrado)\n`;
-      }
+    // === COMANDO !listafree ===
+    if (message.content === '!listafree') {
+        try {
+            const data = fs.readFileSync('FREE.txt', 'utf8');
+            const ids = data.split('\n').filter(Boolean);
+            let lista = '🆓 **Lista de usuarios free:**\n\n';
+
+            for (const id of ids) {
+                try {
+                    const member = await message.guild.members.fetch(id.trim());
+                    const tag = `<@${id.trim()}>`;
+                    const name = member.displayName;
+                    lista += `• ${tag} — ID: ${id.trim()} — Nombre: ${name}\n`;
+                } catch {
+                    lista += `• ID: ${id.trim()} — ⚠️ No encontrado en el servidor\n`;
+                }
+            }
+
+            message.channel.send(lista);
+        } catch (err) {
+            console.error(err);
+            message.channel.send('❌ Error al leer la lista de usuarios free.');
+        }
     }
-    return message.reply(respuesta || "⚠️ Lista vacía.");
-  }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(TOKEN);
