@@ -4,6 +4,7 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const https = require('https');
 
 // === DISCORD CLIENT ===
 const client = new Client({
@@ -20,31 +21,45 @@ const client = new Client({
 const TOKEN = process.env.DISCORD_TOKEN;
 
 // === KEEP-ALIVE WEB SERVER (Render) ===
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Bot activo ✅');
-});
 const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    return res.end('ok');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('✅ The Architect running');
+});
 server.listen(PORT, () => {
   console.log(`🌐 Keep-alive server escuchando en ${PORT}`);
 });
 
 // === AUTOPING (anti-sleep Render) ===
-// Prioriza variable de entorno PING_URL. Si no, usa host externo de Render.
-const renderHost = process.env.RENDER_EXTERNAL_HOSTNAME; // provisto por Render
-const DEFAULT_PING =
-  renderHost ? `https://${renderHost}` : 'https://the-architect-zu7k.onrender.com';
-const PING_URL = process.env.PING_URL || DEFAULT_PING;
+// Prioriza RENDER_EXTERNAL_URL (inyectada por Render). Si no, arma desde HOSTNAME.
+// Si querés forzar manualmente, define AUTOPING_URL en Variables de Entorno.
+const baseFromRenderUrl = (process.env.RENDER_EXTERNAL_URL || '').trim();
+const baseFromHostname = (process.env.RENDER_EXTERNAL_HOSTNAME
+  ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+  : '').trim();
+const baseFromManual = (process.env.AUTOPING_URL || process.env.PING_URL || '').trim();
 
-const AUTOPING_MS = 5 * 60 * 1000; // cada 5 minutos
-setInterval(async () => {
-  try {
-    await fetch(PING_URL);
-    console.log(`🔁 Autoping OK -> ${PING_URL}`);
-  } catch (err) {
-    console.error('⚠️ Error en autoping:', err.message);
-  }
-}, AUTOPING_MS);
+const BASE_URL = (baseFromRenderUrl || baseFromHostname || baseFromManual).replace(/\/$/, '');
+const AUTOPING_URL = BASE_URL ? `${BASE_URL}/health` : '';
+
+if (AUTOPING_URL) {
+  console.log(`🔗 Autoping a: ${AUTOPING_URL}`);
+  setInterval(() => {
+    https.get(AUTOPING_URL, (res) => {
+      if (res.statusCode === 200) {
+        console.log(`🔁 Autoping OK -> ${AUTOPING_URL}`);
+      } else {
+        console.warn(`⚠️ Autoping status ${res.statusCode} -> ${AUTOPING_URL}`);
+      }
+    }).on('error', (err) => console.error('⚠️ Autoping error:', err.message));
+  }, 240000); // cada 4 minutos
+} else {
+  console.log('ℹ️ Autoping desactivado (define RENDER_EXTERNAL_URL o RENDER_EXTERNAL_HOSTNAME o AUTOPING_URL).');
+}
 
 // === HELPERS ===
 function readIdsFile(fileName) {
@@ -58,7 +73,7 @@ function readIdsFile(fileName) {
 }
 
 async function buildUserList(ids, guild) {
-  let out = [];
+  const out = [];
   for (const id of ids) {
     try {
       const member = await guild.members.fetch(id);
@@ -78,7 +93,6 @@ async function sendLong(channel, content) {
   let start = 0;
   while (start < content.length) {
     const chunk = content.slice(start, start + limit);
-    // envolvemos en bloque de código para legibilidad y evitar cortes raros
     await channel.send('```\n' + chunk + '\n```');
     start += limit;
   }
@@ -87,17 +101,29 @@ async function sendLong(channel, content) {
 // === READY ===
 client.once('ready', () => {
   console.log(`✅ Bot iniciado como ${client.user.tag}`);
-  console.log(`🔗 Autoping a: ${PING_URL}`);
+  if (AUTOPING_URL) console.log(`🔗 Autoping a: ${AUTOPING_URL}`);
+
+  // Fuerza presencia online
+  client.user.setPresence({
+    status: 'online',
+    activities: [{ name: 'LIT + noticias en tiempo real', type: 3 }] // WATCHING
+  });
 });
+
+// Logs de gateway para diagnosticar
+client.on('shardDisconnect', (e, id) => console.warn(`🧩 Shard ${id} disconnected:`, e?.code));
+client.on('shardError', (err, id) => console.error(`🧩 Shard ${id} error:`, err));
+client.on('error', (err) => console.error('Client error:', err));
+client.on('warn', (m) => console.warn('Warn:', m));
 
 // === COMMANDS ===
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
+  if (!message.guild) return; // comandos solo en servidores
 
-  // Ignorar DMs para estos comandos (requieren guild)
-  if (!message.guild) return;
+  const txt = message.content.trim();
 
-  if (message.content.trim() === '!listapremium') {
+  if (txt === '!listapremium') {
     try {
       const ids = readIdsFile('PREMIUM.txt');
       if (ids.length === 0) {
@@ -113,7 +139,7 @@ client.on('messageCreate', async message => {
     return;
   }
 
-  if (message.content.trim() === '!listafree') {
+  if (txt === '!listafree') {
     try {
       const ids = readIdsFile('FREE.txt');
       if (ids.length === 0) {
@@ -131,4 +157,8 @@ client.on('messageCreate', async message => {
 });
 
 // === LOGIN ===
+if (!TOKEN) {
+  console.error('❌ Falta DISCORD_TOKEN en variables de entorno.');
+  process.exit(1);
+}
 client.login(TOKEN);
